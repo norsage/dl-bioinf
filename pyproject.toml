@@ -1,3 +1,14 @@
+[project]
+name = "dl-bioinf"
+# dependencies = [
+#     "torch (==2.6.0+cpu) ; extra != 'cuda'",
+# ]
+
+[project.optional-dependencies]
+cuda = [
+    "torch (==2.6.0+cu126)",
+]
+
 [tool.poetry]
 name = "dl-bioinf"
 version = "0.1.0"
@@ -5,28 +16,39 @@ description = ""
 authors = ["norsage <norsage@github.com>"]
 license = ""
 readme = "README.md"
+package-mode = false
+
 
 [tool.poetry.dependencies]
 python = "^3.10"
-torch = "^2.6.0"
-torchvision = "^0.21.0"
+torch = [
+    { markers = "extra != 'cuda'", source = "pytorch-cpu"},
+    { markers = "extra == 'cuda'", source = "pytorch-cuda"},
+]
+torchvision = [
+    { version = "^0.21.0", markers = "extra != 'cuda'", source = "pytorch-cpu"},
+    { version = "^0.21.0", markers = "extra == 'cuda'", source = "pytorch-cuda"},
+]
 
 torch-geometric = "^2.6.1"
 # https://github.com/python-poetry/poetry/issues/9191
 torch-scatter = [
-    {platform = "linux", version = "2.1.2", source = "pyg-gpu"},
+    {platform = "linux", version = "2.1.2", markers = "extra != 'cuda'", source = "pyg-cpu"},
+    {platform = "linux", version = "2.1.2", markers = "extra == 'cuda'", source = "pyg-cuda"},
     {platform = "darwin", python = "3.10", url = "https://data.pyg.org/whl/torch-2.6.0%2Bcpu/torch_scatter-2.1.2-cp310-cp310-macosx_10_9_universal2.whl"},
     {platform = "darwin", python = "3.11", url = "https://data.pyg.org/whl/torch-2.6.0%2Bcpu/torch_scatter-2.1.2-cp311-cp311-macosx_10_9_universal2.whl"},
     {platform = "darwin", python = "3.12", url = "https://data.pyg.org/whl/torch-2.6.0%2Bcpu/torch_scatter-2.1.2-cp312-cp312-macosx_10_13_universal2.whl"},
 ]
 torch-cluster = [
-    {platform = "linux", version = "1.6.3", source = "pyg-gpu"},
+    {platform = "linux", version = "1.6.3", markers = "extra != 'cuda'", source = "pyg-cpu"},
+    {platform = "linux", version = "1.6.3", markers = "extra == 'cuda'", source = "pyg-cuda"},
     {platform = "darwin", python = "3.10", url = "https://data.pyg.org/whl/torch-2.6.0%2Bcpu/torch_cluster-1.6.3-cp310-cp310-macosx_10_9_universal2.whl"},
     {platform = "darwin", python = "3.11", url = "https://data.pyg.org/whl/torch-2.6.0%2Bcpu/torch_cluster-1.6.3-cp311-cp311-macosx_10_9_universal2.whl"},
     {platform = "darwin", python = "3.12", url = "https://data.pyg.org/whl/torch-2.6.0%2Bcpu/torch_cluster-1.6.3-cp312-cp312-macosx_10_13_universal2.whl"},
 ]
 torch-sparse = [
-    {version = "0.6.18", source = "pyg-gpu", platform = "linux"},
+    {platform = "linux", version = "0.6.18", markers = "extra != 'cuda'", source = "pyg-cpu"},
+    {platform = "linux", version = "0.6.18", markers = "extra == 'cuda'", source = "pyg-cuda"},
     {platform = "darwin", python = "3.10", url = "https://data.pyg.org/whl/torch-2.6.0%2Bcpu/torch_sparse-0.6.18-cp310-cp310-macosx_11_0_universal2.whl"},
     {platform = "darwin", python = "3.11", url = "https://data.pyg.org/whl/torch-2.6.0%2Bcpu/torch_sparse-0.6.18-cp311-cp311-macosx_11_0_universal2.whl"},
     {platform = "darwin", python = "3.12", url = "https://data.pyg.org/whl/torch-2.6.0%2Bcpu/torch_sparse-0.6.18-cp312-cp312-macosx_11_0_universal2.whl"},
@@ -48,6 +70,21 @@ build-backend = "poetry.core.masonry.api"
 
 
 [[tool.poetry.source]]
-name = "pyg-gpu"
+name = "pyg-cuda"
 url = "https://data.pyg.org/whl/torch-2.6.0+cu126.html"
+priority = "explicit"
+
+[[tool.poetry.source]]
+name = "pyg-cpu"
+url = "https://data.pyg.org/whl/torch-2.6.0+cpu.html"
+priority = "explicit"
+
+[[tool.poetry.source]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+priority = "explicit"
+
+[[tool.poetry.source]]
+name = "pytorch-cuda"
+url = "https://download.pytorch.org/whl/cu126"
 priority = "explicit"
