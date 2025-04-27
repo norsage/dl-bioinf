@@ -1,2 +1,5 @@
 [virtualenvs]
 in-project = true
+
+[installer]
+re-resolve = false
