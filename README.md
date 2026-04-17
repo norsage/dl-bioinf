@@ -6,7 +6,7 @@
 | :---------------- | :------ | :---- |
 | 1. Введение в глубокое обучение <br> | [Слайды](slides/dl-intro.pdf) |  |
 | 2. Введение в Pytorch (часть 1) <br><br><br> | [Тензоры](notebooks/tensors.ipynb) <br><br><br>| [Операции над тензорами](assignments/tensor_ops.ipynb) <br> [Градиентный спуск на NumPy](assignments/gradient_descent.ipynb) <br> Дедлайн: 19.04 23:59|
-
+| 3. Введение в Pytorch (часть 2) <br><br><br><br><br><br> | [Autograd в PyTorch](notebooks/autograd.ipynb) <br> [Пример: логистическая регрессия на Pytorch](notebooks/backprop.ipynb) <br> [Оптимизаторы, параметры и модули](notebooks/parameters_and_modules.ipynb) <br> [Работа с данными](notebooks/dataloader.ipynb) <br> [Пример: MLP на датасете MNIST](notebooks/mnist.ipynb) <br> [Инициализация параметров](notebooks/initialization.ipynb) (самостоятельное изучение)| [Стабилизация обучения и регуляризация](assignments/training_tricks.ipynb) <br> Дедлайн: 26.04 23:59 <br><br><br><br><br> |
 
 
 ### Создание окружения
