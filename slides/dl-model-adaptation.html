@@ -1,0 +1,1745 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Adapting models to your task</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    /* Palette derived from reference */
+    --bg: #0b0b0c;
+    --bg-soft: #14141a;
+    --panel: #1a1a22;
+    --ink: #ffffff;
+    --ink-soft: #b4b4bd;
+    --ink-faint: #6e6e78;
+    --rule: #2a2a33;
+
+    /* Accents from reference image */
+    --teal-light: #6fe0d4;       /* bright cyan tile */
+    --teal: #2c8a85;             /* mid teal */
+    --teal-deep: #1a4548;        /* deepest teal block */
+    --teal-mid: #266b6a;
+    --mint: #b8e3df;             /* pentagon mint */
+    --blue: #2554d9;             /* feature blue */
+    --blue-deep: #16306b;
+    --coral: #ffc0c4;            /* prediction pink */
+    --red: #e23b58;              /* property red */
+    --yellow: #f0c84a;
+    --lavender: #c8b8ff;
+
+    --sans: 'Manrope', system-ui, sans-serif;
+    --mono: 'JetBrains Mono', 'SF Mono', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    background: #050507;
+    color: var(--ink);
+    font-family: var(--sans);
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  /* ---------- Deck shell: 16:9 letterboxed slide ---------- */
+  .stage {
+    width: 100vw;
+    height: 100vh;
+    display: grid;
+    place-items: center;
+    position: relative;
+  }
+
+  .slide {
+    width: min(96vw, calc(96vh * 16 / 9));
+    aspect-ratio: 16 / 9;
+    background: var(--bg);
+    border-radius: 6px;
+    position: relative;
+    overflow: hidden;
+    display: none;
+    padding: 56px 72px 60px;
+    box-shadow: 0 30px 80px -20px rgba(0,0,0,0.6);
+  }
+  .slide.active { display: flex; flex-direction: column; }
+
+  /* Slide chrome */
+  .slide-tag {
+    position: absolute;
+    top: 28px;
+    left: 72px;
+    font-family: var(--mono);
+    font-size: 16px;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: var(--ink-faint);
+  }
+  .slide-tag .accent { color: var(--teal-light); margin-right: 10px; }
+
+  .slide-num {
+    position: absolute;
+    top: 28px;
+    right: 72px;
+    font-family: var(--mono);
+    font-size: 16px;
+    letter-spacing: 0.15em;
+    color: var(--ink-faint);
+  }
+
+  .slide-title {
+    font-size: clamp(28px, 2.6vw, 38px);
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.015em;
+    margin-bottom: 6px;
+  }
+  .slide-subtitle {
+    font-size: clamp(13px, 1.05vw, 16px);
+    font-weight: 400;
+    color: var(--ink-soft);
+    margin-bottom: 28px;
+    max-width: 80%;
+  }
+
+  /* ---------- Generic typography ---------- */
+  .body { flex: 1; display: flex; flex-direction: column; }
+  p { font-size: 16px; line-height: 1.55; color: var(--ink-soft); }
+  strong { color: var(--ink); font-weight: 600; }
+  em { color: var(--teal-light); font-style: normal; font-weight: 500; }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 16px;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: var(--teal-light);
+    margin-bottom: 12px;
+  }
+
+  /* ---------- Refs footer ---------- */
+  .refs {
+    margin-top: auto;
+    padding-top: 16px;
+    border-top: 1px solid var(--rule);
+    font-family: var(--mono);
+    font-size: 16px;
+    color: var(--ink-faint);
+    line-height: 1.7;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .refs .label {
+    color: var(--teal-light);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    font-weight: 600;
+    margin-right: 0;
+    margin-bottom: 4px;
+  }
+  .refs span.r {
+    display: block;
+    padding-left: 14px;
+    text-indent: -14px;
+  }
+  .refs span.r::before { content: '↳ '; color: var(--teal-light); }
+
+  /* ============================================================
+     SLIDE 1 — TITLE
+     ============================================================ */
+  .title-slide {
+    padding: 72px 80px;
+  }
+  .title-slide.active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .title-inner {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 36px;
+  }
+  .big-title {
+    font-size: clamp(40px, 4.6vw, 72px);
+    line-height: 1;
+    letter-spacing: -0.025em;
+    font-weight: 800;
+    text-align: center;
+  }
+  .big-title .col-2 { color: var(--teal-light); }
+  .title-tags {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .title-tags span {
+    font-family: var(--mono);
+    font-size: 16px;
+    padding: 5px 11px;
+    border: 1px solid var(--rule);
+    border-radius: 100px;
+    color: var(--ink-soft);
+    letter-spacing: 0.04em;
+  }
+
+  /* ============================================================
+     SLIDE 2 — MAP / 2×2
+     ============================================================ */
+  .matrix {
+    display: grid;
+    grid-template-columns: 180px 1fr 1fr;
+    gap: 1px;
+    background: var(--rule);
+    border: 1px solid var(--rule);
+    margin: 6px 0 18px;
+  }
+  .matrix > div { background: var(--bg); padding: 14px 18px; }
+  .matrix .head {
+    font-family: var(--mono);
+    font-size: 16px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--ink-faint);
+    background: var(--bg-soft);
+  }
+  .matrix .head.empty { background: transparent; }
+  .matrix .row-label {
+    font-weight: 600;
+    font-size: 16px;
+    color: var(--ink);
+    background: var(--bg-soft);
+    display: flex;
+    align-items: center;
+  }
+  .matrix .row-label .sub {
+    color: var(--ink-faint);
+    font-weight: 400;
+    font-size: 16px;
+    margin-top: 2px;
+  }
+  .matrix .row-label > div { display: flex; flex-direction: column; gap: 2px; }
+  .matrix .cell { font-size: 16px; line-height: 1.5; color: var(--ink-soft); }
+  .matrix .cell strong { color: var(--ink); }
+  .matrix .cell.highlight {
+    background: linear-gradient(135deg, rgba(111,224,212,0.12), rgba(111,224,212,0.04));
+    box-shadow: inset 0 0 0 1px var(--teal-light);
+    color: var(--ink);
+    position: relative;
+  }
+  .matrix .cell.highlight::before {
+    content: 'NEW';
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    font-family: var(--mono);
+    font-size: 16px;
+    color: var(--teal-light);
+    letter-spacing: 0.15em;
+    font-weight: 600;
+  }
+
+  .keynote {
+    margin-top: 14px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .keynote-block {
+    padding: 14px 16px;
+    background: var(--panel);
+    border-left: 3px solid var(--teal-light);
+    font-size: 16px;
+    line-height: 1.5;
+    color: var(--ink-soft);
+  }
+  .keynote-block strong { color: var(--ink); }
+  .keynote-block .k-tag {
+    font-family: var(--mono);
+    font-size: 16px;
+    color: var(--teal-light);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    display: block;
+  }
+
+  /* ============================================================
+     SLIDE 3 — FEATURE HIERARCHY
+     ============================================================ */
+  .hierarchy-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin: 16px 0 24px;
+    height: 200px;
+  }
+  .hier-block {
+    padding: 18px 16px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    border-radius: 4px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hier-block .hb-num {
+    font-family: var(--mono);
+    font-size: 16px;
+    color: rgba(255,255,255,0.6);
+    letter-spacing: 0.2em;
+  }
+  .hier-block .hb-name {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 4px;
+  }
+  .hier-block .hb-desc {
+    font-size: 16px;
+    color: rgba(255,255,255,0.7);
+    line-height: 1.4;
+  }
+  .hier-block .hb-tag {
+    font-family: var(--mono);
+    font-size: 16px;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    align-self: flex-start;
+    padding: 3px 8px;
+    border-radius: 100px;
+    background: rgba(255,255,255,0.15);
+    color: var(--ink);
+  }
+  .hier-block.b1 { background: var(--blue-deep); }
+  .hier-block.b2 { background: var(--teal-deep); }
+  .hier-block.b3 { background: var(--teal-mid); }
+  .hier-block.b4 { background: var(--teal); }
+
+  .axis-arrows {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  .axis-arrow {
+    font-family: var(--mono);
+    font-size: 16px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--ink-faint);
+    padding: 8px 12px;
+    background: var(--panel);
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .axis-arrow.left { color: var(--mint); }
+  .axis-arrow.right { color: var(--coral); }
+
+  .cnn-diagram {
+    background: transparent;
+    padding: 0;
+    margin: 8px 0;
+    display: flex;
+    justify-content: center;
+  }
+  .cnn-svg {
+    width: 100%;
+    max-width: clamp(700px, 95vw, 1100px);
+    height: auto;
+    display: block;
+  }
+
+  /* ============================================================
+     SLIDE 4 — TIMELINES (foundation models)
+     ============================================================ */
+  .timeline-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 16px;
+  }
+  .tl {
+    padding: 20px 22px;
+    border-radius: 4px;
+    background: var(--panel);
+    position: relative;
+  }
+  .tl.new {
+    background: linear-gradient(135deg, rgba(111,224,212,0.08), rgba(20,20,26,1));
+    border: 1px solid rgba(111,224,212,0.3);
+  }
+  .tl-label {
+    font-family: var(--mono);
+    font-size: 16px;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: var(--ink-faint);
+    margin-bottom: 10px;
+  }
+  .tl.new .tl-label { color: var(--teal-light); }
+  .tl-name {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    line-height: 1.15;
+  }
+  .tl-name .accent { color: var(--teal-light); }
+  .tl-desc {
+    font-size: 16px;
+    color: var(--ink-soft);
+    line-height: 1.5;
+    margin-bottom: 12px;
+  }
+  .tl-flow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--mono);
+    font-size: 16px;
+    color: var(--ink-faint);
+    letter-spacing: 0.05em;
+  }
+  .tl-flow .pill {
+    padding: 4px 9px;
+    border: 1px solid var(--rule);
+    border-radius: 100px;
+    color: var(--ink-soft);
+  }
+  .tl.new .tl-flow .pill.fm {
+    background: var(--teal-light);
+    color: var(--bg);
+    border-color: var(--teal-light);
+    font-weight: 600;
+  }
+  .tl-flow .arrow { color: var(--ink-faint); }
+
+  .examples {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px 18px;
+    font-size: 16px;
+    line-height: 1.5;
+    margin-top: 6px;
+  }
+  .examples .ex {
+    padding: 5px 0;
+    border-bottom: 1px dotted var(--rule);
+    display: flex;
+    gap: 10px;
+    color: var(--ink-soft);
+  }
+  .examples .ex .src {
+    font-family: var(--mono);
+    color: var(--mint);
+    font-weight: 500;
+    min-width: 110px;
+    flex-shrink: 0;
+    font-size: 16px;
+  }
+  .closing-line {
+    margin-top: 12px;
+    padding: 10px 14px;
+    background: var(--bg-soft);
+    border-left: 3px solid var(--coral);
+    font-size: 16px;
+    color: var(--ink);
+    font-style: italic;
+  }
+
+  /* ============================================================
+     SLIDE 5 — SPECTRUM
+     ============================================================ */
+  .spectrum-wrap {
+    padding: 88px 24px 12px;
+    margin-bottom: 14px;
+    position: relative;
+  }
+  .spectrum-axis {
+    height: 3px;
+    background: linear-gradient(90deg, var(--blue) 0%, var(--teal) 35%, var(--mint) 70%, var(--coral) 100%);
+    position: relative;
+    border-radius: 2px;
+    margin: 32px 0 56px;
+  }
+  .sp-mark {
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--bg);
+    border: 2px solid var(--ink);
+  }
+  .sp-label {
+    position: absolute;
+    top: 28px;
+    transform: translateX(-50%);
+    text-align: center;
+    width: 150px;
+  }
+  .sp-label .lab {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--ink);
+    line-height: 1.2;
+    margin-bottom: 4px;
+  }
+  .sp-label .sub {
+    font-family: var(--mono);
+    font-size: 16px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-faint);
+    line-height: 1.3;
+  }
+  /* arrow captions sit ABOVE the axis, flanking it horizontally */
+  .sp-tip-above {
+    position: absolute;
+    top: 16px;
+    font-family: var(--mono);
+    font-size: 16px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-faint);
+    line-height: 1.4;
+    max-width: 280px;
+  }
+  .sp-tip-above.left { left: 24px; text-align: left; }
+  .sp-tip-above.right { right: 24px; text-align: right; }
+  .sp-tip-above .arrow { color: var(--mint); font-size: 16px; }
+  .sp-tip-above.right .arrow { color: var(--coral); }
+
+  .practical-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+    margin-bottom: 14px;
+  }
+  .practical-step {
+    display: grid;
+    grid-template-columns: 36px 1fr;
+    gap: 14px;
+    padding: 16px 20px;
+    background: var(--panel);
+    border-radius: 4px;
+    border-top: 2px solid var(--teal-light);
+  }
+  .practical-step .ps-num {
+    font-family: var(--mono);
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--teal-light);
+    line-height: 1;
+    padding-top: 2px;
+  }
+  .practical-step h4 {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 5px;
+    letter-spacing: -0.005em;
+  }
+  .practical-step p {
+    font-size: 16px;
+    line-height: 1.5;
+    color: var(--ink-soft);
+  }
+  .practical-step p em {
+    color: var(--teal-light);
+    font-style: normal;
+    font-weight: 600;
+  }
+
+  .default-tip {
+    padding: 12px 18px;
+    background: rgba(111,224,212,0.06);
+    border: 1px solid rgba(111,224,212,0.25);
+    border-radius: 4px;
+    font-size: 16px;
+    line-height: 1.55;
+    color: var(--ink-soft);
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+  }
+  .default-tip strong { color: var(--ink); font-weight: 600; }
+  .default-tip .dt-label {
+    font-family: var(--mono);
+    font-size: 16px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--teal-light);
+    font-weight: 600;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  /* ============================================================
+     SLIDE 6 — TECHNIQUE CARDS
+     ============================================================ */
+  .tech-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .tech-card {
+    background: var(--panel);
+    padding: 16px 18px;
+    border-radius: 4px;
+    border-top: 2px solid var(--teal-light);
+    position: relative;
+  }
+  .tech-card .num {
+    position: absolute;
+    top: 12px;
+    right: 16px;
+    font-family: var(--mono);
+    font-size: 16px;
+    color: var(--teal-light);
+    letter-spacing: 0.1em;
+    font-weight: 600;
+  }
+  .tech-card h4 {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    padding-right: 30px;
+    line-height: 1.2;
+  }
+  .tech-card h4 em {
+    font-style: normal;
+    color: var(--teal-light);
+  }
+  .tech-card p {
+    font-size: 16px;
+    line-height: 1.5;
+    color: var(--ink-soft);
+  }
+  .tech-card.warn { border-color: var(--red); }
+  .tech-card.warn .num { color: var(--red); }
+  .tech-card.warn h4 em { color: var(--red); }
+
+  /* ============================================================
+     SLIDE 7 — SCALE CHART
+     ============================================================ */
+  .scale-chart {
+    margin: 6px 0 14px;
+    padding: 16px 20px;
+    background: var(--panel);
+    border-radius: 4px;
+  }
+  .scale-row {
+    display: grid;
+    grid-template-columns: 160px 1fr 150px;
+    align-items: center;
+    margin: 5px 0;
+    gap: 14px;
+    font-family: var(--mono);
+    font-size: 16px;
+  }
+  .scale-row .name { color: var(--ink-soft); font-weight: 500; white-space: nowrap; }
+  .scale-row .bar-track {
+    height: 14px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .scale-row .bar {
+    height: 100%;
+    background: var(--teal-deep);
+    border-radius: 2px;
+  }
+  .scale-row.featured .name { color: var(--teal-light); font-weight: 600; }
+  .scale-row.featured .bar { background: var(--teal-light); }
+  .scale-row .val {
+    color: var(--ink-faint);
+    text-align: right;
+    font-size: 16px;
+    white-space: nowrap;
+  }
+  .scale-row.featured .val { color: var(--teal-light); }
+
+  .annotation {
+    margin: 12px 0 14px;
+    padding: 10px 14px;
+    background: rgba(226,59,88,0.08);
+    border-left: 3px solid var(--red);
+    font-size: 16px;
+    line-height: 1.5;
+    color: var(--ink);
+  }
+  .annotation strong { color: var(--coral); }
+
+  .pain-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+  .pain {
+    padding: 12px 14px;
+    background: var(--panel);
+    border-radius: 4px;
+  }
+  .pain h5 {
+    font-family: var(--mono);
+    font-size: 16px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--coral);
+    margin-bottom: 5px;
+  }
+  .pain p { font-size: 16px; line-height: 1.5; }
+
+  .question-banner {
+    text-align: center;
+    font-size: 16px;
+    color: var(--teal-light);
+    font-weight: 500;
+    padding: 8px;
+    margin-bottom: 8px;
+  }
+  .question-banner::before, .question-banner::after {
+    content: '—'; margin: 0 12px; color: var(--rule);
+  }
+
+  /* ============================================================
+     SLIDE 8 — LoRA
+     ============================================================ */
+  .lora-wrap {
+    display: grid;
+    grid-template-columns: 1.05fr 1fr;
+    gap: 24px;
+    margin-bottom: 12px;
+  }
+  .lora-svg-box {
+    background: var(--panel);
+    padding: 16px;
+    border-radius: 4px;
+    display: grid;
+    place-items: center;
+  }
+  .lora-side h4 {
+    font-family: var(--mono);
+    font-size: 16px;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--teal-light);
+    margin-bottom: 8px;
+  }
+  .lora-side p {
+    font-size: 16px;
+    line-height: 1.55;
+    margin-bottom: 12px;
+  }
+  .formula {
+    font-family: var(--mono);
+    font-size: 16px;
+    text-align: center;
+    padding: 10px;
+    background: var(--bg);
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    margin: 6px 0 12px;
+    letter-spacing: 0.06em;
+  }
+  .formula em { color: var(--teal-light); font-style: normal; }
+  .formula strong { color: var(--coral); font-weight: 500; }
+
+  .peft-list {
+    list-style: none;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px 16px;
+    font-size: 16px;
+    line-height: 1.5;
+    color: var(--ink-soft);
+  }
+  .peft-list li::before {
+    content: '◇';
+    color: var(--teal-light);
+    margin-right: 6px;
+  }
+  .peft-list strong { color: var(--ink); }
+
+  .universal-note {
+    margin-top: 10px;
+    padding: 10px 14px;
+    background: rgba(184,227,223,0.06);
+    border-left: 3px solid var(--mint);
+    border-radius: 0 3px 3px 0;
+    font-size: 16px;
+    line-height: 1.5;
+    color: var(--ink-soft);
+  }
+  .universal-note strong { color: var(--mint); font-weight: 600; }
+  .universal-note em { color: var(--ink); font-style: normal; }
+  .universal-note .un-label {
+    font-family: var(--mono);
+    font-size: 16px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--mint);
+    font-weight: 700;
+    margin-right: 10px;
+  }
+
+  /* ============================================================
+     SLIDE 9 — PEFT pictogram row
+     ============================================================ */
+  .picto-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin: 8px 0 16px;
+  }
+  .picto {
+    background: var(--panel);
+    padding: 18px 16px;
+    text-align: center;
+    border-radius: 4px;
+    border-bottom: 2px solid var(--teal-light);
+  }
+  .picto svg {
+    width: 56px; height: 56px;
+    margin-bottom: 10px;
+  }
+  .picto .ptitle {
+    font-family: var(--mono);
+    font-size: 16px;
+    color: var(--teal-light);
+    margin-bottom: 4px;
+    letter-spacing: 0.04em;
+    font-weight: 600;
+  }
+  .picto .pdesc {
+    font-size: 16px;
+    color: var(--ink-soft);
+    line-height: 1.4;
+  }
+  .biology-callout {
+    margin-bottom: 10px;
+    padding: 12px 16px;
+    background: rgba(184,227,223,0.06);
+    border-left: 3px solid var(--mint);
+    border-radius: 2px;
+    font-size: 16px;
+    line-height: 1.5;
+    color: var(--ink);
+  }
+  .biology-callout strong { color: var(--mint); }
+
+  /* ============================================================
+     SLIDE 7 — CONTEXT ENGINEERING
+     ============================================================ */
+  .ce-flow {
+    display: grid;
+    grid-template-columns: 1fr 18px 1.4fr 18px 0.9fr 18px 1fr;
+    gap: 8px;
+    align-items: stretch;
+    margin: 4px 0 22px;
+  }
+  .ce-stage {
+    padding: 14px 16px;
+    border-radius: 4px;
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+    min-height: 92px;
+  }
+  .ce-stage-label {
+    font-family: var(--mono);
+    font-size: 16px;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--ink-faint);
+  }
+  .ce-stage-name {
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1.15;
+    color: var(--ink);
+  }
+  .ce-stage-detail {
+    font-size: 16px;
+    line-height: 1.4;
+    color: var(--ink-soft);
+    margin-top: 2px;
+  }
+  .ce-stage.ce-context {
+    background: linear-gradient(135deg, rgba(111,224,212,0.12), var(--panel));
+    border-color: var(--teal-light);
+  }
+  .ce-stage.ce-context .ce-stage-label { color: var(--teal-light); }
+  .ce-stage.ce-llm {
+    background: linear-gradient(135deg, var(--teal-deep), var(--bg));
+    border-color: var(--teal-light);
+  }
+  .ce-stage.ce-llm .ce-stage-label { color: var(--mint); }
+  .ce-stage.ce-llm .ce-stage-name { color: var(--ink); }
+  .ce-stage.ce-llm .ce-stage-detail { color: var(--ink-soft); }
+  .ce-stage.ce-input,
+  .ce-stage.ce-output {
+    background: var(--bg-soft);
+  }
+  .ce-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--teal-light);
+    font-size: 16px;
+    font-family: var(--mono);
+    font-weight: 600;
+  }
+
+  .ce-ingredients-label {
+    font-family: var(--mono);
+    font-size: 16px;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: var(--teal-light);
+    margin-bottom: 8px;
+  }
+  .ce-ingredients-label::before {
+    content: '↑ ';
+    color: var(--teal-light);
+  }
+
+  .ce-ingredients {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .ce-card {
+    padding: 12px 14px;
+    background: var(--panel);
+    border-top: 2px solid var(--teal-light);
+    border-radius: 0 0 3px 3px;
+    position: relative;
+  }
+  .ce-card-num {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    font-family: var(--mono);
+    font-size: 16px;
+    color: var(--teal-light);
+    letter-spacing: 0.1em;
+    font-weight: 600;
+  }
+  .ce-card h5 {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 4px;
+    color: var(--ink);
+    padding-right: 22px;
+  }
+  .ce-card p {
+    font-size: 16px;
+    line-height: 1.45;
+    color: var(--ink-soft);
+  }
+
+  /* ============================================================
+     SLIDE 8 — RECAP / three families
+     ============================================================ */
+  .recap-grid {
+    display: grid;
+    grid-template-columns: 1fr 1.4fr 1.3fr;
+    gap: 14px;
+    margin-bottom: 18px;
+  }
+  .recap-box {
+    background: var(--panel);
+    border-radius: 4px;
+    padding: 14px 18px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    position: relative;
+    overflow: hidden;
+  }
+  .rb-stripe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+  }
+  .rb-scratch .rb-stripe { background: var(--coral); }
+  .rb-finetune .rb-stripe { background: var(--mint); }
+  .rb-context .rb-stripe { background: var(--teal-light); }
+  .rb-header {
+    margin-top: 4px;
+  }
+  .rb-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--ink);
+    line-height: 1.15;
+    margin-bottom: 4px;
+  }
+  .rb-scratch .rb-title { color: var(--coral); }
+  .rb-finetune .rb-title { color: var(--mint); }
+  .rb-context .rb-title { color: var(--teal-light); }
+  .rb-when {
+    font-family: var(--mono);
+    font-size: 16px;
+    color: var(--ink-faint);
+    letter-spacing: 0.05em;
+    line-height: 1.4;
+  }
+  .rb-options {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1;
+  }
+  .rb-option {
+    padding: 7px 10px;
+    background: var(--bg-soft);
+    border-radius: 2px;
+    border-left: 2px solid var(--rule);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .rb-scratch .rb-option { border-left-color: var(--coral); }
+  .rb-finetune .rb-option { border-left-color: var(--mint); }
+  .rb-context .rb-option { border-left-color: var(--teal-light); }
+  .rb-option .ro-name {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .rb-option .ro-desc {
+    font-family: var(--mono);
+    font-size: 16px;
+    color: var(--ink-faint);
+    letter-spacing: 0.02em;
+  }
+</style>
+</head>
+<body>
+
+<div class="stage" id="stage">
+
+  <!-- ====================================================== -->
+  <!-- SLIDE 1 — TITLE                                          -->
+  <!-- ====================================================== -->
+  <section class="slide title-slide active" data-slide="1">
+    <div class="title-inner">
+      <h1 class="big-title">Адаптация моделей</h1>
+
+      <div class="title-tags">
+        <span>transfer learning</span>
+        <span>foundation models</span>
+        <span>fine-tuning</span>
+        <span>PEFT</span>
+        <span>in-context learning</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====================================================== -->
+  <!-- SLIDE 2 — TRANSFER LEARNING                             -->
+  <!-- ====================================================== -->
+  <section class="slide" data-slide="2">
+    <div class="slide-num">2 / 8</div>
+    <div class="body">
+      <h2 class="slide-title">Transfer learning</h2>
+
+      <div class="cnn-diagram">
+        <svg viewBox="0 0 820 280" xmlns="http://www.w3.org/2000/svg" class="cnn-svg" preserveAspectRatio="xMidYMid meet">
+          <!-- ============ INPUT IMAGE ============ -->
+          <g transform="translate(20, 54)">
+            <!-- sitting cat in profile, facing right -->
+            <rect x="0" y="0" width="80" height="112" fill="#0b0b0c" stroke="#6e6e78" stroke-width="1"/>
+
+            <!-- TAIL: curving up behind the body, drawn first so it sits behind -->
+            <path d="M 22 96 Q 12 80 14 60 Q 16 48 22 50" stroke="#16306b" stroke-width="6" fill="none" stroke-linecap="round"/>
+
+            <!-- BODY: pear-shaped sitting body -->
+            <path d="M 26 100 Q 18 88 22 70 Q 26 56 40 54 Q 56 56 60 72 Q 62 88 56 100 Z" fill="#2554d9"/>
+
+            <!-- HAUNCH highlight (back leg curve) -->
+            <path d="M 56 78 Q 62 88 56 100" stroke="#3a6dd9" stroke-width="0.8" fill="none" opacity="0.7"/>
+
+            <!-- FRONT LEG: vertical with paw -->
+            <path d="M 38 78 Q 36 92 38 100 L 46 100 Q 48 92 46 78 Z" fill="#2554d9"/>
+            <line x1="42" y1="80" x2="42" y2="100" stroke="#16306b" stroke-width="0.6" opacity="0.5"/>
+
+            <!-- HEAD: round, perched on top of body -->
+            <ellipse cx="44" cy="42" rx="14" ry="13" fill="#2554d9"/>
+
+            <!-- EARS: triangular pointed up -->
+            <path d="M 32 36 L 34 22 L 40 32 Z" fill="#2554d9"/>
+            <path d="M 48 32 L 54 22 L 56 36 Z" fill="#2554d9"/>
+            <!-- inner ear shading -->
+            <path d="M 35 32 L 36 26 L 39 32 Z" fill="#16306b"/>
+            <path d="M 50 32 L 53 26 L 54 32 Z" fill="#16306b"/>
+
+            <!-- MUZZLE: small bump for nose area -->
+            <ellipse cx="54" cy="46" rx="6" ry="4" fill="#3a6dd9" opacity="0.6"/>
+
+            <!-- EYE -->
+            <ellipse cx="48" cy="40" rx="2" ry="2.6" fill="#0b0b0c"/>
+            <ellipse cx="48.2" cy="40" rx="0.5" ry="1.5" fill="#a8d96f" opacity="0.85"/>
+
+            <!-- NOSE -->
+            <path d="M 56 44 L 58.5 44 L 57 46 Z" fill="#16306b"/>
+
+            <!-- MOUTH -->
+            <path d="M 57 46.5 Q 55.5 48 54 47.5" stroke="#16306b" stroke-width="0.6" fill="none"/>
+            <path d="M 57 46.5 Q 58.5 47.5 60 47" stroke="#16306b" stroke-width="0.6" fill="none"/>
+
+            <!-- WHISKERS -->
+            <line x1="50" y1="46" x2="44" y2="46" stroke="#8a8478" stroke-width="0.5"/>
+            <line x1="50" y1="48" x2="44" y2="48" stroke="#8a8478" stroke-width="0.5"/>
+            <line x1="58" y1="46" x2="64" y2="45" stroke="#8a8478" stroke-width="0.5"/>
+            <line x1="58" y1="48" x2="64" y2="49" stroke="#8a8478" stroke-width="0.5"/>
+
+            <text x="40" y="132" fill="#b4b4bd" font-family="JetBrains Mono" font-size="11" text-anchor="middle" letter-spacing="1">INPUT</text>
+            <text x="40" y="145" fill="#6e6e78" font-family="JetBrains Mono" font-size="10" text-anchor="middle">224 × 224</text>
+          </g>
+
+          <!-- arrow -->
+          <line x1="108" y1="120" x2="148" y2="120" stroke="#6e6e78" stroke-width="1.2" marker-end="url(#cnn-arrow)"/>
+
+          <!-- ============ CONV BLOCK 1 (early) ============ -->
+          <g transform="translate(155, 60)">
+            <!-- 3D-perspective stack of feature maps -->
+            <!-- back layer -->
+            <rect x="14" y="14" width="72" height="100" fill="#16306b" opacity="0.4"/>
+            <!-- middle -->
+            <rect x="7" y="7" width="72" height="100" fill="#16306b" opacity="0.7"/>
+            <!-- front -->
+            <rect x="0" y="0" width="72" height="100" fill="#16306b" stroke="#2554d9" stroke-width="1.5"/>
+            <!-- mini features inside front face: oriented edges -->
+            <g stroke="#6fe0d4" stroke-width="1.4" fill="none" opacity="0.85">
+              <line x1="8" y1="14" x2="22" y2="28"/>
+              <line x1="32" y1="14" x2="32" y2="28"/>
+              <line x1="44" y1="14" x2="58" y2="14"/>
+              <line x1="64" y1="14" x2="64" y2="28"/>
+              <line x1="8" y1="40" x2="22" y2="40"/>
+              <line x1="30" y1="40" x2="42" y2="52"/>
+              <line x1="50" y1="52" x2="64" y2="40"/>
+              <line x1="8" y1="62" x2="22" y2="76"/>
+              <line x1="30" y1="76" x2="44" y2="62"/>
+              <line x1="50" y1="62" x2="64" y2="76"/>
+              <line x1="8" y1="86" x2="22" y2="86"/>
+              <line x1="32" y1="86" x2="32" y2="76"/>
+              <line x1="48" y1="86" x2="62" y2="86"/>
+            </g>
+            <text x="43" y="135" fill="#6fe0d4" font-family="JetBrains Mono" font-size="11" text-anchor="middle" font-weight="600">CONV 1</text>
+            <text x="43" y="148" fill="#6e6e78" font-family="JetBrains Mono" font-size="10" text-anchor="middle">края, цвета</text>
+          </g>
+
+          <line x1="265" y1="120" x2="295" y2="120" stroke="#6e6e78" stroke-width="1.2" marker-end="url(#cnn-arrow)"/>
+
+          <!-- ============ CONV BLOCK 2 (middle - textures) ============ -->
+          <g transform="translate(300, 65)">
+            <rect x="14" y="14" width="62" height="90" fill="#1a4548" opacity="0.4"/>
+            <rect x="7" y="7" width="62" height="90" fill="#1a4548" opacity="0.7"/>
+            <rect x="0" y="0" width="62" height="90" fill="#1a4548" stroke="#2c8a85" stroke-width="1.5"/>
+            <!-- texture motifs: wavy lines / checks -->
+            <g stroke="#6fe0d4" stroke-width="1.3" fill="none" opacity="0.85">
+              <path d="M 6 12 Q 12 6 18 12 T 30 12 T 42 12 T 54 12"/>
+              <path d="M 6 24 Q 12 18 18 24 T 30 24 T 42 24 T 54 24"/>
+              <path d="M 6 38 L 14 46 L 22 38 L 30 46 L 38 38 L 46 46 L 54 38"/>
+              <circle cx="14" cy="58" r="3"/>
+              <circle cx="28" cy="58" r="3"/>
+              <circle cx="42" cy="58" r="3"/>
+              <path d="M 6 72 L 12 78 M 16 72 L 22 78 M 26 72 L 32 78 M 36 72 L 42 78 M 46 72 L 52 78"/>
+              <path d="M 6 84 L 12 78 M 16 84 L 22 78 M 26 84 L 32 78 M 36 84 L 42 78 M 46 84 L 52 78"/>
+            </g>
+            <text x="38" y="125" fill="#6fe0d4" font-family="JetBrains Mono" font-size="11" text-anchor="middle" font-weight="600">CONV 2</text>
+            <text x="38" y="138" fill="#6e6e78" font-family="JetBrains Mono" font-size="10" text-anchor="middle">текстуры</text>
+          </g>
+
+          <line x1="395" y1="120" x2="425" y2="120" stroke="#6e6e78" stroke-width="1.2" marker-end="url(#cnn-arrow)"/>
+
+          <!-- ============ CONV BLOCK 3 (parts) ============ -->
+          <g transform="translate(430, 70)">
+            <rect x="14" y="14" width="52" height="80" fill="#266b6a" opacity="0.4"/>
+            <rect x="7" y="7" width="52" height="80" fill="#266b6a" opacity="0.7"/>
+            <rect x="0" y="0" width="52" height="80" fill="#266b6a" stroke="#6fe0d4" stroke-width="1.5"/>
+            <!-- part-like shapes: eye, wheel, leaf-ish -->
+            <g fill="none" stroke="#6fe0d4" stroke-width="1.4" opacity="0.9">
+              <ellipse cx="14" cy="16" rx="8" ry="4"/>
+              <circle cx="14" cy="16" r="2" fill="#6fe0d4"/>
+              <ellipse cx="38" cy="16" rx="8" ry="4"/>
+              <circle cx="38" cy="16" r="2" fill="#6fe0d4"/>
+
+              <circle cx="14" cy="40" r="6"/>
+              <circle cx="14" cy="40" r="2"/>
+              <line x1="14" y1="34" x2="14" y2="46"/>
+              <line x1="8" y1="40" x2="20" y2="40"/>
+
+              <path d="M 32 36 Q 38 30 44 36 Q 44 42 38 46 Q 32 42 32 36 Z"/>
+              <line x1="38" y1="32" x2="38" y2="46"/>
+
+              <path d="M 8 60 Q 14 56 20 60 Q 20 66 14 68 Q 8 66 8 60 Z"/>
+              <path d="M 32 60 Q 40 56 48 62 Q 46 68 38 68 Q 32 66 32 60 Z"/>
+            </g>
+            <text x="33" y="115" fill="#6fe0d4" font-family="JetBrains Mono" font-size="11" text-anchor="middle" font-weight="600">CONV 3</text>
+            <text x="33" y="128" fill="#6e6e78" font-family="JetBrains Mono" font-size="10" text-anchor="middle">части объектов</text>
+          </g>
+
+          <line x1="510" y1="120" x2="540" y2="120" stroke="#6e6e78" stroke-width="1.2" marker-end="url(#cnn-arrow)"/>
+
+          <!-- ============ CONV BLOCK 4 (late - object-level) ============ -->
+          <g transform="translate(545, 75)">
+            <rect x="14" y="14" width="42" height="70" fill="#2c8a85" opacity="0.4"/>
+            <rect x="7" y="7" width="42" height="70" fill="#2c8a85" opacity="0.7"/>
+            <rect x="0" y="0" width="42" height="70" fill="#2c8a85" stroke="#6fe0d4" stroke-width="1.5"/>
+            <!-- whole object silhouettes -->
+            <g fill="#0b0b0c" stroke="#6fe0d4" stroke-width="1.2">
+              <!-- cat-ish silhouette -->
+              <path d="M 6 14 L 8 10 L 12 14 L 16 10 L 18 14 Q 22 16 22 22 Q 22 28 16 28 L 8 28 Q 4 28 4 22 Q 4 18 6 14 Z" stroke-linejoin="round"/>
+              <!-- cell-ish circle -->
+              <circle cx="32" cy="20" r="8"/>
+              <circle cx="32" cy="20" r="3" fill="#6fe0d4"/>
+              <!-- car-ish -->
+              <path d="M 6 44 L 22 44 L 24 50 L 4 50 Z M 8 50 Q 8 53 11 53 Q 14 53 14 50 M 16 50 Q 16 53 19 53 Q 22 53 22 50" fill="none" stroke-linejoin="round"/>
+              <!-- flower-ish -->
+              <circle cx="32" cy="50" r="2.5" fill="#6fe0d4"/>
+              <circle cx="32" cy="44" r="2.5" fill="none"/>
+              <circle cx="32" cy="56" r="2.5" fill="none"/>
+              <circle cx="26" cy="50" r="2.5" fill="none"/>
+              <circle cx="38" cy="50" r="2.5" fill="none"/>
+            </g>
+            <text x="28" y="105" fill="#6fe0d4" font-family="JetBrains Mono" font-size="11" text-anchor="middle" font-weight="600">CONV 4</text>
+            <text x="28" y="118" fill="#6e6e78" font-family="JetBrains Mono" font-size="10" text-anchor="middle">целые объекты</text>
+          </g>
+
+          <line x1="615" y1="120" x2="645" y2="120" stroke="#6e6e78" stroke-width="1.2" marker-end="url(#cnn-arrow)"/>
+
+          <!-- ============ FC / HEAD (task-specific) ============ -->
+          <g transform="translate(650, 65)">
+            <!-- vertical column of nodes representing FC layer -->
+            <g fill="#ffc0c4" stroke="#e23b58" stroke-width="1">
+              <circle cx="10" cy="8" r="5"/>
+              <circle cx="10" cy="22" r="5"/>
+              <circle cx="10" cy="36" r="5"/>
+              <circle cx="10" cy="50" r="5"/>
+              <circle cx="10" cy="64" r="5"/>
+              <circle cx="10" cy="78" r="5"/>
+              <circle cx="10" cy="92" r="5"/>
+            </g>
+            <!-- second FC column -->
+            <g fill="#e23b58" stroke="#e23b58" stroke-width="1">
+              <circle cx="36" cy="20" r="5"/>
+              <circle cx="36" cy="40" r="5"/>
+              <circle cx="36" cy="60" r="5"/>
+              <circle cx="36" cy="80" r="5"/>
+            </g>
+            <!-- connecting lines (sparse) -->
+            <g stroke="#4a2530" stroke-width="0.5" opacity="0.7">
+              <line x1="15" y1="8" x2="31" y2="20"/>
+              <line x1="15" y1="22" x2="31" y2="20"/>
+              <line x1="15" y1="22" x2="31" y2="40"/>
+              <line x1="15" y1="36" x2="31" y2="40"/>
+              <line x1="15" y1="50" x2="31" y2="40"/>
+              <line x1="15" y1="50" x2="31" y2="60"/>
+              <line x1="15" y1="64" x2="31" y2="60"/>
+              <line x1="15" y1="64" x2="31" y2="80"/>
+              <line x1="15" y1="78" x2="31" y2="80"/>
+              <line x1="15" y1="92" x2="31" y2="80"/>
+            </g>
+            <text x="22" y="120" fill="#ffc0c4" font-family="JetBrains Mono" font-size="11" text-anchor="middle" font-weight="600">FC + HEAD</text>
+            <text x="22" y="133" fill="#6e6e78" font-family="JetBrains Mono" font-size="10" text-anchor="middle">классификатор</text>
+          </g>
+
+          <line x1="700" y1="120" x2="735" y2="120" stroke="#6e6e78" stroke-width="1.2" marker-end="url(#cnn-arrow)"/>
+
+          <!-- ============ OUTPUT ============ -->
+          <g transform="translate(740, 88)">
+            <rect x="0" y="0" width="80" height="60" fill="#0b0b0c" stroke="#e23b58" stroke-width="1.5"/>
+            <text x="40" y="22" fill="#ffc0c4" font-family="JetBrains Mono" font-size="10" text-anchor="middle">cat 0.82</text>
+            <text x="40" y="36" fill="#6e6e78" font-family="JetBrains Mono" font-size="10" text-anchor="middle">dog 0.11</text>
+            <text x="40" y="50" fill="#6e6e78" font-family="JetBrains Mono" font-size="10" text-anchor="middle">… 0.07</text>
+            <text x="40" y="80" fill="#b4b4bd" font-family="JetBrains Mono" font-size="11" text-anchor="middle" letter-spacing="1">OUTPUT</text>
+            <text x="40" y="93" fill="#6e6e78" font-family="JetBrains Mono" font-size="10" text-anchor="middle">1000 classes</text>
+          </g>
+
+          <!-- ============ TRANSFER ANNOTATION BAND ============ -->
+          <!-- Two-way split: transferable (conv body) vs task-specific (head) -->
+          <g>
+            <!-- transferable band: covers all conv blocks -->
+            <line x1="155" y1="38" x2="615" y2="38" stroke="#6fe0d4" stroke-width="1.2"/>
+            <line x1="155" y1="34" x2="155" y2="42" stroke="#6fe0d4" stroke-width="1.2"/>
+            <line x1="615" y1="34" x2="615" y2="42" stroke="#6fe0d4" stroke-width="1.2"/>
+            <text x="385" y="28" fill="#6fe0d4" font-family="JetBrains Mono" font-size="11" text-anchor="middle" font-weight="600" letter-spacing="1.5">ПЕРЕНОСИМЫЕ</text>
+
+            <!-- task-specific band: covers FC head -->
+            <line x1="650" y1="38" x2="820" y2="38" stroke="#ffc0c4" stroke-width="1.2"/>
+            <line x1="650" y1="34" x2="650" y2="42" stroke="#ffc0c4" stroke-width="1.2"/>
+            <line x1="820" y1="34" x2="820" y2="42" stroke="#ffc0c4" stroke-width="1.2"/>
+            <text x="735" y="28" fill="#ffc0c4" font-family="JetBrains Mono" font-size="11" text-anchor="middle" font-weight="600" letter-spacing="1.5">СПЕЦИФИЧНЫЕ ДЛЯ ЗАДАЧИ</text>
+          </g>
+
+          <!-- ============ Bottom annotation: "what each layer learns" gradient bar ============ -->
+          <g transform="translate(155, 240)">
+            <defs>
+              <linearGradient id="cnn-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#16306b"/>
+                <stop offset="33%" stop-color="#1a4548"/>
+                <stop offset="66%" stop-color="#266b6a"/>
+                <stop offset="85%" stop-color="#2c8a85"/>
+                <stop offset="100%" stop-color="#e23b58"/>
+              </linearGradient>
+            </defs>
+            <rect x="0" y="0" width="665" height="6" fill="url(#cnn-grad)" rx="3"/>
+            <text x="0" y="-8" fill="#6e6e78" font-family="JetBrains Mono" font-size="10" letter-spacing="1.5">СЛОЖНОСТЬ ПРЕДСТАВЛЕНИЙ</text>
+            <text x="0" y="22" fill="#6e6e78" font-family="JetBrains Mono" font-size="10">низкая</text>
+            <text x="332" y="22" fill="#6e6e78" font-family="JetBrains Mono" font-size="10" text-anchor="middle">средняя</text>
+            <text x="665" y="22" fill="#6e6e78" font-family="JetBrains Mono" font-size="10" text-anchor="end">высокая</text>
+          </g>
+
+          <defs>
+            <marker id="cnn-arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+              <polygon points="0 0, 6 3, 0 6" fill="#6e6e78"/>
+            </marker>
+          </defs>
+        </svg>
+      </div>
+
+      <div class="keynote-block" style="border-left-color: var(--coral); margin-top: 14px;">
+        <span class="k-tag" style="color: var(--coral);">фундаментальная идея</span>
+        <strong>Низкоуровневые признаки универсальны; высокоуровневые — специфичны для задачи.</strong>
+      </div>
+
+      <div class="refs">
+        <span class="label">refs</span>
+        <span class="r">Yosinski et al. 2014 — How transferable are features in deep neural networks?</span>
+        <span class="r">Zeiler &amp; Fergus 2014 — Visualizing and Understanding Convolutional Networks</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====================================================== -->
+  <!-- SLIDE 3 — FOUNDATION MODELS                             -->
+  <!-- ====================================================== -->
+  <section class="slide" data-slide="3">
+    <div class="slide-num">3 / 8</div>
+    <div class="body">
+      <h2 class="slide-title">Foundation models</h2>
+
+      <div class="timeline-row">
+        <div class="tl">
+          <div class="tl-label">с нуля</div>
+          <div class="tl-name">Узкоспециализированная модель</div>
+          <div class="tl-desc">Обучена под одну задачу — полезна только для неё. Новая задача → обучение с нуля.</div>
+          <div class="tl-flow">
+            <span class="pill">data</span><span class="arrow">→</span>
+            <span class="pill">train</span><span class="arrow">→</span>
+            <span class="pill">one task</span>
+          </div>
+        </div>
+        <div class="tl new">
+          <div class="tl-label">transfer learning</div>
+          <div class="tl-name">Foundation model <span class="accent">→ много задач</span></div>
+          <div class="tl-desc">Предобучена на большом датасете на доступной задаче — выученные представления используются для downstream-задач.</div>
+          <div class="tl-flow">
+            <span class="pill fm">FM</span><span class="arrow">→</span>
+            <span class="pill">task A</span>
+            <span class="pill">task B</span>
+            <span class="pill">task C…</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="examples">
+        <div class="ex"><span class="src">CNN / ViT</span><span>микроскопия, гистология, медицинские снимки</span></div>
+        <div class="ex"><span class="src">CLIP</span><span>поиск картинка↔текст, zero-shot классификация</span></div>
+        <div class="ex"><span class="src">DNABERT, NT</span><span>геномика, регуляторные элементы</span></div>
+        <div class="ex"><span class="src">ESM-2, ProtBERT</span><span>функции белков, эффекты мутаций</span></div>
+      </div>
+
+      <div class="closing-line">Первый вопрос в начале нового проекта: <strong>есть ли foundation model для моей модальности?</strong></div>
+    </div>
+  </section>
+
+  <!-- ====================================================== -->
+  <!-- SLIDE 4 — SPECTRUM + PRACTICAL STEPS                     -->
+  <!-- ====================================================== -->
+  <section class="slide" data-slide="4">
+    <div class="slide-num">4 / 8</div>
+    <div class="body">
+      <h2 class="slide-title">Fine-tuning — это спектр</h2>
+
+      <div class="spectrum-wrap">
+        <div class="sp-tip-above left">
+          <span class="arrow">←</span> меньше переобучения<br>
+          меньше catastrophic forgetting
+        </div>
+        <div class="sp-tip-above right">
+          нужно больше данных и вычислений<br>
+          больше возможностей для специализации <span class="arrow">→</span>
+        </div>
+
+        <div class="spectrum-axis">
+          <div class="sp-mark" style="left: 8%;"></div>
+          <div class="sp-mark" style="left: 36%;"></div>
+          <div class="sp-mark" style="left: 64%;"></div>
+          <div class="sp-mark" style="left: 92%;"></div>
+
+          <div class="sp-label" style="left: 8%;">
+            <div class="lab">Linear probe</div>
+          </div>
+          <div class="sp-label" style="left: 36%;">
+            <div class="lab">Последний блок</div>
+          </div>
+          <div class="sp-label" style="left: 64%;">
+            <div class="lab">Верхняя половина</div>
+          </div>
+          <div class="sp-label" style="left: 92%;">
+            <div class="lab">Full fine-tuning</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="practical-row">
+        <div class="practical-step">
+          <div class="ps-num">01</div>
+          <div>
+            <h4>Заменить head</h4>
+            <p>Изменилось пространство меток (1000 классов ImageNet → 5 типов клеток) — пересобираем финальный классификатор. Тело сети (backbone) сохраняет предобученные веса.</p>
+          </div>
+        </div>
+        <div class="practical-step">
+          <div class="ps-num">02</div>
+          <div>
+            <h4>Меньший learning rate</h4>
+            <p>В 10–100 раз меньше, чем при обучении с нуля — иначе предобученные признаки сотрутся за первую эпоху (<em>catastrophic forgetting</em>). Опционально — <em>discriminative</em> LR.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="refs">
+        <span class="label">refs</span>
+        <span class="r">Howard &amp; Ruder 2018 — Universal Language Model Fine-tuning for Text Classification (ULMFiT)</span>
+        <span class="r">Kirkpatrick et al. 2017 — Overcoming catastrophic forgetting in neural networks (EWC)</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====================================================== -->
+  <!-- SLIDE 6 — TOO BIG TO FINE-TUNE                           -->
+  <!-- ====================================================== -->
+  <section class="slide" data-slide="5">
+    <div class="slide-num">5 / 8</div>
+    <div class="body">
+      <h2 class="slide-title">Модели стали слишком большими для fine-tuning</h2>
+
+      <div class="scale-chart">
+        <div class="scale-row">
+          <span class="name">AlexNet</span>
+          <div class="bar-track"><div class="bar" style="width: 0.4%;"></div></div>
+          <span class="val">60M · 2012</span>
+        </div>
+        <div class="scale-row">
+          <span class="name">BERT</span>
+          <div class="bar-track"><div class="bar" style="width: 0.7%;"></div></div>
+          <span class="val">110M · 2018</span>
+        </div>
+        <div class="scale-row">
+          <span class="name">GPT-2</span>
+          <div class="bar-track"><div class="bar" style="width: 3%;"></div></div>
+          <span class="val">1.5B · 2019</span>
+        </div>
+        <div class="scale-row">
+          <span class="name">GPT-3</span>
+          <div class="bar-track"><div class="bar" style="width: 35%;"></div></div>
+          <span class="val">175B · 2020</span>
+        </div>
+        <div class="scale-row">
+          <span class="name">ESM-2</span>
+          <div class="bar-track"><div class="bar" style="width: 30%;"></div></div>
+          <span class="val">15B · 2022</span>
+        </div>
+        <div class="scale-row">
+          <span class="name">DeepSeek-V4</span>
+          <div class="bar-track"><div class="bar" style="width: 100%;"></div></div>
+          <span class="val">1.6T · 2026</span>
+        </div>
+      </div>
+
+      <div class="annotation">
+        <strong>7B параметров</strong>, full fine-tuning, Adam, fp16 → <strong>~80 ГБ GPU-памяти</strong> (веса + градиенты + состояние оптимизатора).
+      </div>
+
+      <div class="pain-grid">
+        <div class="pain">
+          <h5>Проблема 1 — память</h5>
+          <p>Full fine-tuning не помещается на одну GPU. Состояние оптимизатора само по себе в 4 раза больше модели.</p>
+        </div>
+        <div class="pain">
+          <h5>Проблема 2 — хранение</h5>
+          <p>По одной дообученной копии на каждую задачу = много полных копий огромной модели. Не масштабируется.</p>
+        </div>
+      </div>
+
+      <div class="question-banner">Можно ли адаптировать модель, не обновляя её основные веса?</div>
+    </div>
+  </section>
+
+  <!-- ====================================================== -->
+  <!-- SLIDE 7 — LoRA                                           -->
+  <!-- ====================================================== -->
+  <section class="slide" data-slide="6">
+    <div class="slide-num">6 / 8</div>
+    <div class="body">
+      <h2 class="slide-title">PEFT: parameter-efficient fine-tuning</h2>
+
+      <div class="lora-wrap">
+        <div class="lora-svg-box">
+          <svg viewBox="0 30 380 220" xmlns="http://www.w3.org/2000/svg" style="width:100%; height:auto;">
+            <!-- input x -->
+            <text x="20" y="115" fill="#b4b4bd" font-family="JetBrains Mono" font-size="14" font-weight="500">x</text>
+            <!-- input arrow to W -->
+            <line x1="35" y1="110" x2="125" y2="110" stroke="#6e6e78" stroke-width="1.5" marker-end="url(#a1)"/>
+
+            <!-- W block (frozen, big) -->
+            <rect x="125" y="80" width="100" height="60" fill="#1a4548" stroke="#6fe0d4" stroke-width="1.5" rx="3"/>
+            <text x="175" y="115" fill="#ffffff" font-family="JetBrains Mono" font-size="18" font-weight="700" text-anchor="middle">W</text>
+            <text x="175" y="68" fill="#6e6e78" font-family="JetBrains Mono" font-size="10" text-anchor="middle" letter-spacing="1">FROZEN · d×d</text>
+            <!-- snowflake (frozen icon) -->
+            <text x="218" y="92" fill="#6fe0d4" font-size="12">❄</text>
+
+            <!-- output arrow + sum -->
+            <line x1="225" y1="110" x2="280" y2="110" stroke="#6e6e78" stroke-width="1.5"/>
+            <circle cx="290" cy="110" r="10" fill="#0b0b0c" stroke="#ffc0c4" stroke-width="1.5"/>
+            <text x="290" y="114" fill="#ffc0c4" font-family="JetBrains Mono" font-size="14" font-weight="700" text-anchor="middle">+</text>
+            <line x1="300" y1="110" x2="350" y2="110" stroke="#6e6e78" stroke-width="1.5" marker-end="url(#a1)"/>
+            <text x="358" y="115" fill="#b4b4bd" font-family="JetBrains Mono" font-size="14" font-weight="500">h</text>
+
+            <!-- low-rank path: x → A → B → up to sum -->
+            <line x1="35" y1="115" x2="35" y2="180" stroke="#6e6e78" stroke-width="1.5"/>
+            <line x1="35" y1="180" x2="100" y2="180" stroke="#6e6e78" stroke-width="1.5" marker-end="url(#a1)"/>
+            <rect x="100" y="160" width="50" height="40" fill="#0b0b0c" stroke="#6fe0d4" stroke-width="1.5" rx="3"/>
+            <text x="125" y="184" fill="#6fe0d4" font-family="JetBrains Mono" font-size="14" font-weight="700" text-anchor="middle">A</text>
+            <text x="125" y="153" fill="#6fe0d4" font-family="JetBrains Mono" font-size="10" text-anchor="middle" letter-spacing="1">d × r</text>
+
+            <line x1="150" y1="180" x2="200" y2="180" stroke="#6e6e78" stroke-width="1.5" marker-end="url(#a1)"/>
+            <rect x="200" y="160" width="50" height="40" fill="#6fe0d4" rx="3"/>
+            <text x="225" y="184" fill="#0b0b0c" font-family="JetBrains Mono" font-size="14" font-weight="700" text-anchor="middle">B</text>
+            <text x="225" y="153" fill="#6fe0d4" font-family="JetBrains Mono" font-size="10" text-anchor="middle" letter-spacing="1">r × d</text>
+
+            <!-- arrow up to sum -->
+            <line x1="250" y1="180" x2="290" y2="180" stroke="#6e6e78" stroke-width="1.5"/>
+            <line x1="290" y1="180" x2="290" y2="120" stroke="#6e6e78" stroke-width="1.5" marker-end="url(#a1)"/>
+
+            <!-- trainable label -->
+            <rect x="115" y="208" width="120" height="0" fill="none"/>
+            <text x="175" y="216" fill="#ffc0c4" font-family="JetBrains Mono" font-size="10" text-anchor="middle" letter-spacing="1">TRAINABLE · r ≪ d</text>
+
+            <defs>
+              <marker id="a1" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+                <polygon points="0 0, 6 3, 0 6" fill="#6e6e78"/>
+              </marker>
+            </defs>
+          </svg>
+        </div>
+
+        <div class="lora-side">
+          <h4>Математика</h4>
+          <div class="formula">h = <em>W</em>x + <strong>B</strong><strong>A</strong>x</div>
+          <p><em>W</em> — замороженные предобученные веса. <strong>A</strong> и <strong>B</strong> образуют low-rank поправку ΔW = BA — обычно ранг 4–16, не зависит от размера модели.</p>
+
+          <h4>Почему это работает</h4>
+          <p>Эмпирически: <strong>поправка</strong>, нужная для адаптации предобученной модели, имеет низкий внутренний ранг. Полная матрица d×d не нужна — даже для GPT-3 (d = 12288) хватает r = 1–8.</p>
+        </div>
+      </div>
+
+      <div class="refs">
+        <span class="label">refs</span>
+        <span class="r">Houlsby et al. 2019 — Parameter-Efficient Transfer Learning for NLP (Adapters)</span>
+        <span class="r">Hu et al. 2021 — LoRA: Low-Rank Adaptation of Large Language Models</span>
+        <span class="r">Han et al. 2024 — Parameter-Efficient Fine-Tuning for Large Models: A Comprehensive Survey</span>
+        <span class="r">HuggingFace — peft library (huggingface.co/docs/peft)</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====================================================== -->
+  <!-- SLIDE 7 — CONTEXT ENGINEERING                            -->
+  <!-- ====================================================== -->
+  <section class="slide" data-slide="7">
+    <div class="slide-num">7 / 8</div>
+    <div class="body">
+      <h2 class="slide-title">Context engineering — адаптация LLM без обучения</h2>
+
+      <div class="ce-flow">
+        <div class="ce-stage ce-input">
+          <div class="ce-stage-label">задача пользователя</div>
+          <div class="ce-stage-name">Запрос</div>
+        </div>
+        <div class="ce-arrow">→</div>
+        <div class="ce-stage ce-context">
+          <div class="ce-stage-label">harness</div>
+          <div class="ce-stage-name">Контекст</div>
+          <div class="ce-stage-detail">prompt + найденные документы + tool definitions + skill instructions</div>
+        </div>
+        <div class="ce-arrow">→</div>
+        <div class="ce-stage ce-llm">
+          <div class="ce-stage-label">замороженные веса</div>
+          <div class="ce-stage-name">LLM</div>
+          <div class="ce-stage-detail">❄ градиенты не считаются</div>
+        </div>
+        <div class="ce-arrow">→</div>
+        <div class="ce-stage ce-output">
+          <div class="ce-stage-label">ответ / действие</div>
+          <div class="ce-stage-name">Output</div>
+        </div>
+      </div>
+
+      <div class="ce-ingredients-label">Что попадает в контекст:</div>
+
+      <div class="ce-ingredients">
+        <div class="ce-card">
+          <div class="ce-card-num">01</div>
+          <h5>Prompting</h5>
+          <p>Инструкции и 2–10 примеров в промпте.</p>
+        </div>
+        <div class="ce-card">
+          <div class="ce-card-num">02</div>
+          <h5>RAG</h5>
+          <p>Автоматический поиск релевантных кусков текста в базе данных.</p>
+        </div>
+        <div class="ce-card">
+          <div class="ce-card-num">03</div>
+          <h5>Tools</h5>
+          <p>Вызываемые функции (BLAST, AlphaFold, БД). Модель сама решает, когда вызывать.</p>
+        </div>
+        <div class="ce-card">
+          <div class="ce-card-num">04</div>
+          <h5>Skills</h5>
+          <p>Переиспользуемые наборы инструкций под задачу.</p>
+        </div>
+      </div>
+
+      <div class="refs">
+        <span class="label">refs</span>
+        <span class="r">Brown et al. 2020 — Language Models are Few-Shot Learners (GPT-3)</span>
+        <span class="r">Lewis et al. 2020 — Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks</span>
+        <span class="r">Yao et al. 2023 — ReAct: Synergizing Reasoning and Acting in Language Models</span>
+        <span class="r">Anthropic 2025 — Effective Context Engineering for AI Agents</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====================================================== -->
+  <!-- SLIDE 8 — RECAP                                          -->
+  <!-- ====================================================== -->
+  <section class="slide" data-slide="8">
+    <div class="slide-num">8 / 8</div>
+    <div class="body">
+      <h2 class="slide-title">Три семейства адаптации</h2>
+
+      <div class="recap-grid">
+        <div class="recap-box rb-scratch">
+          <div class="rb-stripe"></div>
+          <div class="rb-header">
+            <div class="rb-title">Обучение с нуля</div>
+            <div class="rb-when">Нет foundation model для вашей модальности</div>
+          </div>
+          <div class="rb-options">
+            <div class="rb-option"><span class="ro-name">Узкоспециализированная модель</span><span class="ro-desc">данные + архитектура + много вычислений</span></div>
+          </div>
+        </div>
+
+        <div class="recap-box rb-finetune">
+          <div class="rb-stripe"></div>
+          <div class="rb-header">
+            <div class="rb-title">Fine-tuning</div>
+            <div class="rb-when">FM есть · есть размеченные данные · веса можно обновлять</div>
+          </div>
+          <div class="rb-options">
+            <div class="rb-option"><span class="ro-name">Linear probe</span><span class="ro-desc">маленький датасет, тело заморожено</span></div>
+            <div class="rb-option"><span class="ro-name">PEFT (LoRA, adapters)</span><span class="ro-desc">модель слишком большая для full fine-tuning</span></div>
+            <div class="rb-option"><span class="ro-name">Full fine-tuning</span><span class="ro-desc">данных хватает, модель влезает в память</span></div>
+          </div>
+        </div>
+
+        <div class="recap-box rb-context">
+          <div class="rb-stripe"></div>
+          <div class="rb-header">
+            <div class="rb-title">Context engineering</div>
+            <div class="rb-when">LLM · веса обновлять не нужно</div>
+          </div>
+          <div class="rb-options">
+            <div class="rb-option"><span class="ro-name">Prompting</span><span class="ro-desc">инструкции + примеры</span></div>
+            <div class="rb-option"><span class="ro-name">RAG</span><span class="ro-desc">поиск и подстановка документов</span></div>
+            <div class="rb-option"><span class="ro-name">Tools</span><span class="ro-desc">вызываемые функции</span></div>
+            <div class="rb-option"><span class="ro-name">Skills</span><span class="ro-desc">наборы инструкций под задачу</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const total = slides.length;
+  let current = 0;
+
+  function show(i) {
+    if (i < 0) i = 0;
+    if (i >= total) i = total - 1;
+    slides[current].classList.remove('active');
+    slides[i].classList.add('active');
+    current = i;
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') {
+      e.preventDefault();
+      show(current + 1);
+    } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+      e.preventDefault();
+      show(current - 1);
+    } else if (e.key === 'Home') {
+      show(0);
+    } else if (e.key === 'End') {
+      show(total - 1);
+    } else if (e.key.toLowerCase() === 'f') {
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+      else document.exitFullscreen();
+    }
+  });
+
+  // Initial slide
+  show(0);
+
+  // Touch swipe for mobile / trackpad
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const dx = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(dx) > 50) show(current + (dx < 0 ? 1 : -1));
+  });
+</script>
+
+</body>
+</html>
